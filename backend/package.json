@@ -1,0 +1,13 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend that is responsible for the execution of ETH transfer when fabric confirmation is received",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./confirm.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
