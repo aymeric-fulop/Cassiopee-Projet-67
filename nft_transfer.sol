@@ -8,6 +8,36 @@ import "openzeppelin-contracts/contracts/utils/Address.sol";
 contract NFT_Transfer {
     using Address for address;
 
+    // Define roles
+    address public admin;
+    mapping(address => bool) public executors;
+
+    constructor(address _admin) {
+        admin = _admin;
+    }
+
+    // Modifier to restrict access to admin only
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Access denied. Only the admin can call this function.");
+        _;
+    }
+    
+    // Modifier to restrict access to executors only
+    modifier onlyExecutor() {
+        require(executors[msg.sender] == true, "Access denied. Only executors can call this function.");
+        _;
+    }
+
+    // Function to add an executor
+    function addExecutor(address _executor) external onlyAdmin {
+        executors[_executor] = true;
+    }
+    
+    // Function to remove an executor
+    function removeExecutor(address _executor) external onlyAdmin {
+        executors[_executor] = false;
+    }
+
     //create an object to store tranfer in pending
     struct PendingTransfer {
         address sender;
@@ -20,7 +50,7 @@ contract NFT_Transfer {
     mapping(bytes32 => PendingTransfer) public pendingTransfers;
 
     //function put a transfer into pending, requesting the confirmation
-    function Request(address nftContract, uint256 tokenId, address recipient) external returns (bytes32) {
+    function Request(address nftContract, uint256 tokenId, address recipient) external onlyExecutor returns (bytes32) {
         //sender needs to own the nft
         require(IERC721(nftContract).ownerOf(tokenId) == msg.sender, "ERC721Transfer: sender does not own token");
         //recipient should not be a contract address
@@ -34,7 +64,7 @@ contract NFT_Transfer {
     }
 
     //function that will perform the transaction, previously locked
-    function Confirm(bytes32 transferId) external {
+    function Confirm(bytes32 transferId) external onlyExecutor {
         //retrieve all the informations of the pending transfer
         PendingTransfer memory transfer = pendingTransfers[transferId];
         //sender needs to match
