@@ -14,6 +14,9 @@ contract DepositContract {
     address public admin;
     mapping(address => bool) public executors;
     
+    constructor(address _admin) {
+        admin = _admin;
+    }
     // Modifier to restrict access to admin only
     modifier onlyAdmin() {
         require(msg.sender == admin, "Access denied. Only the admin can call this function.");
@@ -26,9 +29,7 @@ contract DepositContract {
         _;
     }
     
-    constructor(address _admin) {
-        admin = _admin;
-    }
+    
     
     function deposit() external payable {
         require(msg.value > 0, "Amount must be greater than 0.");
