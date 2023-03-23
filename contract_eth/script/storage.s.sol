@@ -9,7 +9,7 @@ contract StorageScript is Script {
 
     function run() public {
         vm.startBroadcast();
-        new DepositContract('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+        new DepositContract(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         vm.stopBroadcast();
     }
 }

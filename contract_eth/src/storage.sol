@@ -9,9 +9,10 @@ contract DepositContract {
     
     event Deposit(address indexed depositor, uint256 amount);
     event Confirmation(address indexed sender, address indexed recipient, uint256 amount);
-    
+    event Reversion(address indexed depositor);
     // Define roles
     address public admin;
+
     mapping(address => bool) public executors;
     
     constructor(address _admin) {
@@ -38,15 +39,22 @@ contract DepositContract {
         emit Deposit(msg.sender, msg.value);
     }
     
-    function confirm(address _recipient, uint256 _amount) external onlyExecutor {
-        require(address(this).balance >= _amount, "Insufficient balance in the contract.");
+    function confirm(address _depositor, address _recipient) external onlyExecutor {
+        // require(address(this).balance >= _amount, "Insufficient balance in the contract.");
         
         storedAddress = payable(_recipient);
-        storedAddress.transfer(_amount);
+        storedAddress.transfer(deposits[_depositor]);
         
-        emit Confirmation(msg.sender, _recipient, _amount);
+        emit Confirmation(msg.sender, _recipient, deposits[_depositor]);
     }
     
+    function revertDepot(address _depositor) external {
+        if (executors[msg.sender] == true || msg.sender == _depositor){
+            storedAddress = payable(_depositor);
+            storedAddress.transfer(deposits[_depositor]);
+            emit Reversion(_depositor);
+        }        
+    }
     // Function to add an executor
     function addExecutor(address _executor) external onlyAdmin {
         executors[_executor] = true;
