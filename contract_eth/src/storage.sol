@@ -10,13 +10,14 @@ contract DepositContract {
     event Deposit(address indexed depositor, uint256 amount);
     event Confirmation(address indexed sender, address indexed recipient, uint256 amount);
     event Reversion(address indexed depositor);
+    event TransferOwnership(address indexed admin);
     // Define roles
     address public admin;
 
     mapping(address => bool) public executors;
     
-    constructor(address _admin) {
-        admin = _admin;
+    constructor() {
+        admin = msg.sender;
     }
     // Modifier to restrict access to admin only
     modifier onlyAdmin() {
@@ -49,7 +50,7 @@ contract DepositContract {
     }
     
     function revertDepot(address _depositor) external {
-        if (executors[msg.sender] == true || msg.sender == _depositor){
+        if (msg.sender == _depositor){
             storedAddress = payable(_depositor);
             storedAddress.transfer(deposits[_depositor]);
             emit Reversion(_depositor);
@@ -64,4 +65,19 @@ contract DepositContract {
     function removeExecutor(address _executor) external onlyAdmin {
         executors[_executor] = false;
     }
+
+    function isExecutor(address _executor) external view returns (bool) {
+        return executors[_executor];
+    }
+
+    function getAdmin() public view returns (address){
+        return admin;
+    }
+
+    function transferOwnership(address _admin) external {
+        admin = _admin;
+        emit TransferOwnership(_admin);
+    }
+
+
 }
