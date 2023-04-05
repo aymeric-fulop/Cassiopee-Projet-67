@@ -78,6 +78,4 @@ contract DepositContract {
         admin = _admin;
         emit TransferOwnership(_admin);
     }
-
-
 }
