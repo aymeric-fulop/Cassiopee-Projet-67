@@ -45,8 +45,7 @@ export const TestStore = () => {
   }
 
   const contractDeposit = async (value) => {
-    const sepoliaeth = value; // Example value in sepoliaeth
-    //const weiValue = ethers.utils.formatEther(sepoliaeth);
+    const sepoliaeth = value; 
 		contract.deposit({ value: ethers.utils.parseEther(sepoliaeth) });
     console.log("Deposit success")
 	}
