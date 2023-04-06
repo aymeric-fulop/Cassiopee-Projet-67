@@ -19,13 +19,14 @@ contract DepositContract {
     constructor() {
         admin = msg.sender;
     }
-    // Modifier to restrict access to admin only
+
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "Access denied. Only the admin can call this function.");
         _;
     }
     
-    // Modifier to restrict access to executors only
+
     modifier onlyExecutor() {
         require(executors[msg.sender] == true, "Access denied. Only executors can call this function.");
         _;
@@ -41,27 +42,33 @@ contract DepositContract {
     }
     
     function confirm(address _depositor, address _recipient) external onlyExecutor {
-        // require(address(this).balance >= _amount, "Insufficient balance in the contract.");
-        
-        storedAddress = payable(_recipient);
-        storedAddress.transfer(deposits[_depositor]);
-        
-        emit Confirmation(msg.sender, _recipient, deposits[_depositor]);
+        if (deposits[_depositor] >= 0 ) {
+            storedAddress = payable(_recipient);
+            storedAddress.transfer(deposits[_depositor]);
+            deposits[_depositor] = 0;
+            emit Confirmation(msg.sender, _recipient, deposits[_depositor]);
+        }
+        else {
+            revert("Insufient balance deposited by the specified depositor");
+        }
     }
     
     function revertDepot(address _depositor) external {
         if (msg.sender == _depositor){
             storedAddress = payable(_depositor);
             storedAddress.transfer(deposits[_depositor]);
+            deposits[_depositor] = 0;
             emit Reversion(_depositor);
+        }
+        else {
+            revert("Insufient balance");
         }        
     }
-    // Function to add an executor
+
     function addExecutor(address _executor) external onlyAdmin {
         executors[_executor] = true;
     }
-    
-    // Function to remove an executor
+
     function removeExecutor(address _executor) external onlyAdmin {
         executors[_executor] = false;
     }
