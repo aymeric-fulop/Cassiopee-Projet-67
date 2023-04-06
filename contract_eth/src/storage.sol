@@ -41,7 +41,7 @@ contract DepositContract {
         emit Deposit(msg.sender, msg.value);
     }
     
-    function confirm(address _depositor, address _recipient) external onlyExecutor {
+    function confirm(address _depositor, address _recipient) external onlyExecutor { 
         if (deposits[_depositor] >= 0 ) {
             storedAddress = payable(_recipient);
             storedAddress.transfer(deposits[_depositor]);
