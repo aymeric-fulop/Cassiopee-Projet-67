@@ -1,30 +1,28 @@
-const Web3 = require('web3');
-const HDWalletProvider = require('@truffle/hdwallet-provider');
+require('dotenv').config();
+const { ethers } = require('ethers');
 const contractABI = require('./ContractABI.json');
 
-const provider = new HDWalletProvider({
-    mnemonic: 'we will process it with process dotenv or json',
-    providerOrUrl: 'https://ropsten.infura.io/v3/I will set up that',
-});
+const mnemonic = process.env.MNEMONIC;
+const providerUrl = process.env.INFURA_URL;
 
-// initiate web3 instance using web3(provider)
-const web3 = new Web3(provider);
-const contractAddress = 'our contract adress when deployed';
-// we make the contract readable for web3.js
-const contract = new web3.eth.Contract(contractABI, contractAddress);
+const provider = new ethers.providers.JsonRpcProvider(providerUrl);
+const walletMnemonic = ethers.Wallet.fromMnemonic(mnemonic);
+const wallet = walletMnemonic.connect(provider);
 
-const recipient = 'this adress will be sent by the dapp';
-const amount = web3.utils.toWei('1', 'ether');
+const contractAddress = 'your_contract_address_when_deployed';
+const contract = new ethers.Contract(contractAddress, contractABI, wallet);
+
+const recipient = 'this_address_will_be_sent_by_the_dapp';
+const amount = ethers.utils.parseEther('1'); // Convert 1 ether to wei
 
 async function confirmTransfer() {
-    const accounts = await web3.eth.getAccounts();
-    const sender = accounts[0];
-    console.log(`Confirming transfer: recipient=${recipient}, amount=${amount}`);
-    const tx = await contract.methods.confirm(recipient, amount).send({from: sender});
-    console.log(`Transaction hash: ${tx.transactionHash}`);
+    const sender = wallet.address;
+    console.log(`Confirming transfer: sender=${sender}, recipient=${recipient}, amount=${amount}`);
+    const tx = await contract.confirm(recipient, amount);
+    console.log(`Transaction hash: ${tx.hash}`);
+    await tx.wait(); // Wait for the transaction confirmation
 }
 
-// We call that script when we want to proceed to the transfer, ie when we have the confirmation from the dapp
 confirmTransfer()
     .then(() => process.exit(0))
     .catch((err) => {
