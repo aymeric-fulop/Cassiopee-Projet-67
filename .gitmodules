@@ -7,3 +7,6 @@
 [submodule "nft_exemple/lib/forge-std"]
 	path = nft_exemple/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "nft_exemple/lib/openzeppelin-contracts"]
+	path = nft_exemple/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts

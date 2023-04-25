@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
-import "openzeppelin-contracts/contracts/utils/Address.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+import "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
 contract NFT_Transfer {
     using Address for address;
