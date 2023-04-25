@@ -33,6 +33,19 @@ contract DepositContract {
     }
     
     
+    function addExecutor(address _executor) external onlyAdmin {
+        executors[_executor] = true;
+    }
+
+    function removeExecutor(address _executor) external onlyAdmin {
+        executors[_executor] = false;
+    }
+
+
+    function transferOwnership(address _admin) external {
+        admin = _admin;
+        emit TransferOwnership(_admin);
+    }
     
     function deposit() external payable {
         require(msg.value > 0, "Amount must be greater than 0.");
@@ -63,26 +76,5 @@ contract DepositContract {
         else {
             revert("Insufient balance");
         }        
-    }
-
-    function addExecutor(address _executor) external onlyAdmin {
-        executors[_executor] = true;
-    }
-
-    function removeExecutor(address _executor) external onlyAdmin {
-        executors[_executor] = false;
-    }
-
-    function isExecutor(address _executor) external view returns (bool) {
-        return executors[_executor];
-    }
-
-    function getAdmin() public view returns (address){
-        return admin;
-    }
-
-    function transferOwnership(address _admin) external {
-        admin = _admin;
-        emit TransferOwnership(_admin);
     }
 }
