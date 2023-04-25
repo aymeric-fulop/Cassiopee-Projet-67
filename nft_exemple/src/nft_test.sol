@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import "openzeppelin-contracts/contracts/utils/Counters.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import "../lib/openzeppelin-contracts/contracts/utils/Counters.sol";
 
 //The purpose of this smart contract is to implement basic NFT to test nft_transfer.sol on Hyperledger Fabric
 
