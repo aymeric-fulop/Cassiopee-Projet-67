@@ -47,20 +47,22 @@ contract NFT_Transfer {
 
     
     // Mapping pour stocker un UserDeposit pour chaque depositId
-    mapping(bytes32 => UserDeposit) public userDeposits;
+    mapping(bytes32 => NftTransfer) public userDeposits;
 
-    // Array pour les dépots en cours
-    bytes32[] public pendingDeposits;
-    
-    // La structure UserDeposit pour stocker des informations sur les NFT déposés
-    struct UserDeposit {
-        address nftContract;
-        uint256 tokenId;
-        address sender;
+    // La structure NftTransfer pour stocker des informations sur les NFT déposés
+    struct NftTransfer {
+        Nft[] nfts;
+        uint256 valueAsked;
+        address sender; 
     }
 
-    // Fonction permettant à quiconque de déposer un NFT dans le contrat sans spécifier de destinataire
-    function Deposit(address nftContract, uint256 tokenId) external {
+    struct Nft {
+        address nftContract;
+        uint256 tokenId;
+    }
+
+    // Fonction permettant à quiconque de déposer un NFT dans le contrat
+    function Deposit(address _recipient, address nftContract, uint256 tokenId, uint256 valueAsked) external {
         // Le déposant doit posséder le NFT
         require(IERC721(nftContract).ownerOf(tokenId) == msg.sender, "ERC721Transfer: sender does not own token");
 
@@ -68,64 +70,63 @@ contract NFT_Transfer {
         IERC721(nftContract).transferFrom(msg.sender, address(this), tokenId);
 
         // Enregistrer le dépôt
-        bytes32 depositId = keccak256(abi.encodePacked(msg.sender, nftContract, tokenId));
-        userDeposits[depositId] = UserDeposit(nftContract, tokenId, msg.sender);
-        pendingDeposits.push(depositId);
+        bytes32 depositId = keccak256(abi.encodePacked(msg.sender, _recipient));
+        userDeposits[depositId].nfts.push(Nft(nftContract, tokenId));
+        userDeposits[depositId].valueAsked += valueAsked;
+        userDeposits[depositId].sender = msg.sender;
     }
 
     // Fonction permettant aux Executors de spécifier un destinataire et d'effectuer le transfert du NFT stocké dans le contrat
-    function Confirm(bytes32 depositId, address recipient) external onlyExecutor {
+    function Confirm(address _depositor, address _recipient) external onlyExecutor {
         // Récupérer les informations sur le dépôt en attente
-        UserDeposit memory deposit = userDeposits[depositId];
 
-        // Le contrat doit posséder le NFT
-        require(IERC721(deposit.nftContract).ownerOf(deposit.tokenId) == address(this), "ERC721Transfer: contract does not own token");
+        bytes32 depositId = keccak256(abi.encodePacked(_depositor, _recipient));
+        NftTransfer memory deposit = userDeposits[depositId];
 
-        // Le destinataire ne doit pas être une adresse de contrat
-        require(!recipient.isContract(), "ERC721Transfer: recipient cannot be a contract");
+        for ( uint256 i; i < deposit.nfts.length; i ++ ) {
+
+            // Je sais pas si c'est nécéssaire. 
+            
+            // // Le contrat doit posséder le NFT
+            // require(IERC721(deposit.nfts[i].nftContract).ownerOf(deposit.nfts[i].tokenId) == address(this), "ERC721Transfer: contract does not own token");
+
+            // // Le destinataire ne doit pas être une adresse de contrat
+            // require(!recipient.isContract(), "ERC721Transfer: recipient cannot be a contract");
+
+            // Effectuer le transfert entre le contrat et le destinataire
+            IERC721(deposit.nfts[i].nftContract).transferFrom(address(this), _recipient, deposit.nfts[i].tokenId);
+        }
 
         // Supprimer les informations sur le dépôt après le processus de transfert
         delete userDeposits[depositId];
-
-        // Actualise la liste des deposit en cours
-        _removePendingDeposit(depositId);
-
-        // Effectuer le transfert entre le contrat et le destinataire
-        IERC721(deposit.nftContract).transferFrom(address(this), recipient, deposit.tokenId);
     }
 
     // Fonction permettant aux utilisateurs de récupérer leur NFT stocké dans le contrat
-    function Revert(bytes32 depositId) external {
+    function Revert(address _recipient) external {
+
+        bytes32 depositId = keccak256(abi.encodePacked(msg.sender, _recipient));
         // Récupérer les informations sur le dépôt en attente
-        UserDeposit memory deposit = userDeposits[depositId];
+        NftTransfer memory deposit = userDeposits[depositId];
 
         // Le déposant doit correspondre
         require(deposit.sender == msg.sender, "ERC721Transfer: sender does not match original depositor");
 
-        // Le contrat doit posséder le NFT
-        require(IERC721(deposit.nftContract).ownerOf(deposit.tokenId) == address(this), "ERC721Transfer: contract does not own token");
+        for ( uint256 i; i < deposit.nfts.length; i ++ ) {
+
+            // Je sais pas si c'est nécéssaire. 
+            
+            // // Le contrat doit posséder le NFT
+            // require(IERC721(deposit.nfts[i].nftContract).ownerOf(deposit.nfts[i].tokenId) == address(this), "ERC721Transfer: contract does not own token");
+
+            // // Le destinataire ne doit pas être une adresse de contrat
+            // require(!recipient.isContract(), "ERC721Transfer: recipient cannot be a contract");
+
+            // Effectuer le transfert entre le contrat et le destinataire
+            IERC721(deposit.nfts[i].nftContract).transferFrom(address(this), _recipient, deposit.nfts[i].tokenId);
+        }
 
         // Supprimer les informations sur le dépôt après le processus de récupération
         delete userDeposits[depositId];
-        
-        // Actualise la liste des deposit en cours
-        _removePendingDeposit(depositId);
-
-        // Effectuer le transfert entre le contrat et le déposant
-        IERC721(deposit.nftContract).transferFrom(address(this), deposit.sender, deposit.tokenId);
     }
 
-
-    function _removePendingDeposit(bytes32 deposit) private {
-        // Supprimer la valeur associée à la clé dans le mapping
-
-        // Supprimer la clé du tableau keys
-        for (uint256 i = 0; i < pendingDeposits.length; i++) {
-            if (pendingDeposits[i] == deposit) {
-                pendingDeposits[i] = pendingDeposits[pendingDeposits.length - 1];
-                pendingDeposits.pop();
-                break;
-            }
-        }
-    }
 }
