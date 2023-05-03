@@ -7,7 +7,7 @@ contract DepositContract {
     address payable public storedAddress;
     mapping(bytes32 => uint256) public deposits;
     
-    event Deposit(address indexed depositor, uint256 amount);
+    event Deposit(address indexed depositor, address indexed recipient, uint256 amount);
     event Confirmation(address indexed sender, address indexed recipient, uint256 amount);
     event Reversion(address indexed depositor);
     event TransferOwnership(address indexed admin);
@@ -53,7 +53,7 @@ contract DepositContract {
         bytes32 depositId = keccak256(abi.encodePacked(msg.sender, _recipient));
 
         deposits[depositId] += msg.value;
-        emit Deposit(msg.sender, msg.value);
+        emit Deposit(msg.sender, _recipient, msg.value);
     }
     
     function confirm(address _depositor, address _recipient) external onlyExecutor {

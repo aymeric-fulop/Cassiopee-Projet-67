@@ -9,7 +9,9 @@ contract NFT_Transfer {
     using Address for address;
 
     event TransferOwnership(address indexed admin);
-
+    event NftDeposit(address indexed depositor, address indexed recipient);
+    event NftTransferConfirmed(address indexed depositor, address indexed recipient);
+    event NftDepositReverted(address indexed depositor);
     // Define roles
     address public admin;
     mapping(address => bool) public executors;
@@ -62,7 +64,7 @@ contract NFT_Transfer {
     }
 
     // Fonction permettant à quiconque de déposer un NFT dans le contrat
-    function Deposit(address _recipient, address nftContract, uint256 tokenId, uint256 valueAsked) external {
+    function depositNft(address _recipient, address nftContract, uint256 tokenId, uint256 valueAsked) external {
         // Le déposant doit posséder le NFT
         require(IERC721(nftContract).ownerOf(tokenId) == msg.sender, "ERC721Transfer: sender does not own token");
 
@@ -74,10 +76,12 @@ contract NFT_Transfer {
         userDeposits[depositId].nfts.push(Nft(nftContract, tokenId));
         userDeposits[depositId].valueAsked += valueAsked;
         userDeposits[depositId].sender = msg.sender;
+
+        emit NftDeposit(msg.sender, _recipient);
     }
 
     // Fonction permettant aux Executors de spécifier un destinataire et d'effectuer le transfert du NFT stocké dans le contrat
-    function Confirm(address _depositor, address _recipient) external onlyExecutor {
+    function confirm(address _depositor, address _recipient) external onlyExecutor {
         // Récupérer les informations sur le dépôt en attente
 
         bytes32 depositId = keccak256(abi.encodePacked(_depositor, _recipient));
@@ -99,10 +103,11 @@ contract NFT_Transfer {
 
         // Supprimer les informations sur le dépôt après le processus de transfert
         delete userDeposits[depositId];
+        emit NftTransferConfirmed(_depositor, _recipient);
     }
 
     // Fonction permettant aux utilisateurs de récupérer leur NFT stocké dans le contrat
-    function Revert(address _recipient) external {
+    function revertDepot(address _recipient) external {
 
         bytes32 depositId = keccak256(abi.encodePacked(msg.sender, _recipient));
         // Récupérer les informations sur le dépôt en attente
@@ -127,6 +132,7 @@ contract NFT_Transfer {
 
         // Supprimer les informations sur le dépôt après le processus de récupération
         delete userDeposits[depositId];
+        emit NftDepositReverted(msg.sender);
     }
 
 }
