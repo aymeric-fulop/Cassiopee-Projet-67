@@ -49,6 +49,9 @@ contract NFT_Transfer {
     // Mapping pour stocker un UserDeposit pour chaque depositId
     mapping(bytes32 => UserDeposit) public userDeposits;
 
+    // Array pour les dépots en cours
+    bytes32[] public pendingDeposits;
+    
     // La structure UserDeposit pour stocker des informations sur les NFT déposés
     struct UserDeposit {
         address nftContract;
@@ -67,6 +70,7 @@ contract NFT_Transfer {
         // Enregistrer le dépôt
         bytes32 depositId = keccak256(abi.encodePacked(msg.sender, nftContract, tokenId));
         userDeposits[depositId] = UserDeposit(nftContract, tokenId, msg.sender);
+        pendingDeposits.push(depositId);
     }
 
     // Fonction permettant aux Executors de spécifier un destinataire et d'effectuer le transfert du NFT stocké dans le contrat
@@ -82,6 +86,9 @@ contract NFT_Transfer {
 
         // Supprimer les informations sur le dépôt après le processus de transfert
         delete userDeposits[depositId];
+
+        // Actualise la liste des deposit en cours
+        _removePendingDeposit(depositId);
 
         // Effectuer le transfert entre le contrat et le destinataire
         IERC721(deposit.nftContract).transferFrom(address(this), recipient, deposit.tokenId);
@@ -100,8 +107,25 @@ contract NFT_Transfer {
 
         // Supprimer les informations sur le dépôt après le processus de récupération
         delete userDeposits[depositId];
+        
+        // Actualise la liste des deposit en cours
+        _removePendingDeposit(depositId);
 
         // Effectuer le transfert entre le contrat et le déposant
         IERC721(deposit.nftContract).transferFrom(address(this), deposit.sender, deposit.tokenId);
+    }
+
+
+    function _removePendingDeposit(bytes32 deposit) private {
+        // Supprimer la valeur associée à la clé dans le mapping
+
+        // Supprimer la clé du tableau keys
+        for (uint256 i = 0; i < pendingDeposits.length; i++) {
+            if (pendingDeposits[i] == deposit) {
+                pendingDeposits[i] = pendingDeposits[pendingDeposits.length - 1];
+                pendingDeposits.pop();
+                break;
+            }
+        }
     }
 }
