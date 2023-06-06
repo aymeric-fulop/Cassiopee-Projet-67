@@ -1,2 +1,8 @@
 backend/node_modules/*
 backend/.env
+backend/application-gateway-fabric-eth/config/.env
+backend/application-gateway-fabric-eth/node_modules/*
+backend/application-gateway-fabric-eth/dist/*
+fabric-network/chaincode-typescript/dist/*
+fabric-network/chaincode-typescript/node_modules/*
+CassiopeeWorkspace.code-workspace

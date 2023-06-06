@@ -3,7 +3,7 @@
 */
 
 import {Object, Property} from 'fabric-contract-api';
-export type AssetStatus = 'owned' | 'deposited';
+import { AssetStatus } from './types';
 @Object()
 export class Asset {
     @Property()
@@ -26,4 +26,12 @@ export class Asset {
 
     @Property()
     public Status: AssetStatus;
+}
+@Object()
+export class UserEthereumMapping {
+    @Property()
+    public userId: string;
+    
+    @Property()
+    public ethereumAddress: string;
 }
