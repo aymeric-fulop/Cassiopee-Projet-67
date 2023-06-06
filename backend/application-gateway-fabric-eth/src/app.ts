@@ -14,7 +14,7 @@ import * as path from 'path';
 import { TextDecoder } from 'util';
 dotenv.config({ path: path.resolve(__dirname, '../config/.env') });
 const channelName = envOrDefault('CHANNEL_NAME', 'mychannel');
-const chaincodeName = envOrDefault('CHAINCODE_NAME', 'basic4');
+const chaincodeName = envOrDefault('CHAINCODE_NAME', 'basic6');
 const mspId = envOrDefault('MSP_ID', 'Org1MSP');
 const pkey : any  =  process.env.PKEY;
 const providerUrl = process.env.INFURA_URL;
@@ -119,14 +119,14 @@ async function startEventListening(network: Network): Promise<CloseableAsyncIter
 async function readEvents(events: CloseableAsyncIterable<ChaincodeEvent>): Promise<void> {
     try {
         for await (const event of events) {
-            console.log(event)
             const payload : any= parseJson(event.payload);
             if ( event.eventName === "DepositAsset" ) {
+                console.log(`\n<-- Chaincode event received: ${event.eventName} -`, payload);
                 let depositor = [payload.actualOwner , payload.EthAddressFrom, payload.asset];
                 let recipient = [payload.futureOwner , payload.ETHAddressTo, payload.asset];
                 confirmTransferAfterNftDeposit(contract, depositor, recipient);
             }
-            console.log(`\n<-- Chaincode event received: ${event.eventName} -`, payload);
+            
         }
     } catch (error: unknown) {
         // Ignore the read error when events.close() is called explicitly
@@ -284,7 +284,6 @@ async function displayInputParameters(): Promise<void> {
  * get Ethereum address of a specific user
  **/
 async function getEthereumAddress(contract: Contract, userId : string): Promise<void> {
-    console.log('\n--> Creating user ...');
     try{
         const resultBytes = await contract.evaluateTransaction(
         'GetEthereumAddress',
@@ -303,18 +302,12 @@ async function getEthereumAddress(contract: Contract, userId : string): Promise<
  * Confirm transfer on fabrik
  **/
 async function confirmTransfer(contract: Contract, assetId : string, newOwner : string): Promise<void> {
-    console.log('\n--> Creating user ...');
-    try{
-        await contract.submitTransaction(
-        'ConfirmTransfer',
-        assetId,
-        newOwner,
+    await contract.submitTransaction(
+    'ConfirmTransfer',
+    assetId,
+    newOwner,
     );
     console.log(`Transfer confirmed on Hyperledger Fabric for asset ${assetId} to ${newOwner} !`);
-    }
-    catch(err){
-        console.log(`Unable to confirm transfer check trace for asset ${assetId} to ${newOwner} !`);
-    }
 }
 
 async function confirmTransferAfterETHDeposit( depositor : any, recipient : any, value : any, event : any) {
@@ -323,20 +316,39 @@ async function confirmTransferAfterETHDeposit( depositor : any, recipient : any,
     // La liste des dépots des nfts est de la sorte [[depositorId, depositorAddress, depositAssetId], [recipientId, recipientAddress]]
     // On a juste à checker si nftdeposit[1][1] == recipient et nftdeposit[0][1] == depositor
     for (let nftdeposit of nftsDeposits) {
-        if (nftdeposit.length != 0 && nftdeposit[1][1] == recipient && nftdeposit[0][1] == depositor) {
+        if (nftdeposit.length != 0 && nftdeposit[0][1] == recipient && nftdeposit[1][1] == depositor) {
             console.log(`Confirming transfer: executor=${executor}, depositor=${depositor}, recipient=${recipient}`);
-            
-            // Confirm the transfer
-            const txTransferETH = await contractDepositETH.confirm(depositor, recipient);
-            
-            await txTransferETH.wait(); // Wait for the transaction confirmation
-                    
-            // Confirm an existing deposited asset asynchronously.
-            await confirmTransfer(contract, nftdeposit[0][2], nftdeposit[1][0]);
+            // Confirm the transfer on Ethereum
+            let txTransferETH;
+            try {
+                txTransferETH = await contractDepositETH.confirm(depositor, recipient );
+                await txTransferETH.wait(); // Wait for the transaction confirmation
+            }
+            catch(err){
+                console.log(err);
+                console.log(`\nUnable to confirm transfer on ethereum\nTransfer still in logs and can be reverted\nFrom ${depositor} to ${recipient}`);
+                return;
+            }
+            try {
+                // Confirm an existing deposited asset asynchronously.
+                await confirmTransfer(contract, nftdeposit[0][2], nftdeposit[1][0]);
+            }
+            catch(err){
+                console.log(err);
+                console.log(`\nUnable to confirm transfer check trace for\n${nftdeposit[0][2]} to ${nftdeposit[1][0]} !`);
+                return;
+            }
+
+            //Remove nftdesposit from the list : 
+            let index = nftsDeposits.indexOf(nftdeposit);
+
+            if (index !== -1) {
+                nftsDeposits.splice(index, 1);
+            }
 
             // Return all the current assets on the ledger.
             await getAllAssets(contract);
-            console.log(`Transaction hash: ${txTransferETH.hash}`); // Exemple de log les transfers
+            console.log(`Transaction hash on ethereum: ${txTransferETH.hash}`); // Exemple de log les transfers
             console.log("Transfer has been done") // log, transfer hashes or pass them directly to the front
             return;
         }
@@ -353,21 +365,42 @@ async function confirmTransferAfterNftDeposit(contract: Contract, depositor : an
     // [depositorId, depositorAddress, depositAssetId] = depositor, [recipientId, recipientAddress] = recipient
     // La liste des dépots ETH est de la sorte [depositorAddress, recipientAddress]
     // On a juste à checker si ethdeposit[0] == depositor[1] et ethdeposit[1] == depositor[1]
+
     for (let ethdeposit of ethDeposits) {
         if (ethdeposit.length != 0 && ethdeposit[0] == recipient[1] && ethdeposit[1] == depositor[1]) {
             console.log(`Confirming transfer: executor=${executor}, depositor=${depositor}, recipient=${recipient}`);
             
-            // Confirm the transfer
-            const txTransferETH = await contractDepositETH.confirm(ethdeposit[0], ethdeposit[1] );
-            await txTransferETH.wait(); // Wait for the transaction confirmation
-            
-            // Confirm an existing deposited asset asynchronously.
-            await confirmTransfer(contract, depositor[2], recipient[0]);
-
+            let txTransferETH;
+            try {
+                // Confirm the transfer on Ethereum
+                txTransferETH = await contractDepositETH.confirm(ethdeposit[0], ethdeposit[1] );
+                await txTransferETH.wait(); // Wait for the transaction confirmation
+            }
+            catch(err){
+                console.log(err);
+                console.log(`\nUnable to confirm transfer on ethereum\nTransfer still in logs and can be reverted\nFrom ${ethdeposit[0]} to ${ethdeposit[1]}`);
+                return;
+            }
+            try {
+                // Confirm an existing deposited asset asynchronously.
+                await confirmTransfer(contract, depositor[2], recipient[0]);
+            }
+            catch(err){
+                console.log(err);
+                console.log(`\nUnable to confirm transfer check trace for\n${depositor[2]} to ${recipient[0]} !`);
+                return;
+            }
             // Return all the current assets on the ledger.
             await getAllAssets(contract);
 
-            console.log("Transfer has been done") // log, transfer hashes or pass them directly to the front
+            //Remove ethdeposit from the list : 
+            let index = ethDeposits.indexOf(ethdeposit);
+
+            if (index !== -1) {
+                ethDeposits.splice(index, 1);
+            }
+            console.log(`Transaction hash on ethereum: ${txTransferETH.hash}`); // Exemple de log les transfers
+            console.log("\nTransfer has been done\n") // log, transfer hashes or pass them directly to the front
             return;
         }
     }
@@ -375,10 +408,4 @@ async function confirmTransferAfterNftDeposit(contract: Contract, depositor : an
     nftsDeposits.push([depositor, recipient]);
     console.log(`Transfer has not been done, because ETH deposit not found for those addresses:\n from ${depositor[1]}\n to ${recipient[1]}\nDeposit is waiting`)
 }
-// confirmTransferAfterNftDeposit()
-//     .then(() => process.exit(0))
-//     .catch((err) => {
-//         console.error(err);
-//         process.exit(1);
-//     });
 

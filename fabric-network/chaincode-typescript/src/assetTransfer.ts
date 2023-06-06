@@ -152,10 +152,10 @@ export class AssetTransferContract extends Contract {
     @Transaction()
     async ConfirmTransfer(ctx: Context, id: string, newOwner : string) : Promise<void> {
         let asset = await this.checkAssetStatus(ctx, id, 'deposited');
-        await this.TransferAsset(ctx, id, newOwner);
-        // Update asset status
+        asset.Owner = newOwner;
         asset.Status = 'owned';
         const assetBuffer = Buffer.from(stringify(sortKeysRecursive(asset)));
+		ctx.stub.setEvent('TransferAsset', assetBuffer);
 		ctx.stub.setEvent('ConfirmTransfer', assetBuffer);
         return ctx.stub.putState(id, assetBuffer);
     }
