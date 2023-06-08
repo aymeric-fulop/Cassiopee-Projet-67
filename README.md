@@ -26,4 +26,6 @@
   If you want to implement a solution between Fabric and Ethereum. To integrate a payement methode using Ethereum on your Fabric Blockchain     this is for you. 
 
 
-## Credits and Acknowledgements: Paul Bitan & Aymeric Fullop
+## Credits and Acknowledgements:
+  Devlopers : Paul Bitan & Aymeric Fullop
+  Special thanks to our supervisors : Maryline L and Montassar B N
